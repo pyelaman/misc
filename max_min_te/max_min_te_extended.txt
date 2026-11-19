@@ -1,0 +1,19 @@
+// The extension will model trunks, cached sparse tunnels, aggregated connection demands, piecewise
+// priorities, incremental recomputation, headroom, quantized groups, source policers, and transactional plan installation.
+
+// The extended model compiles and runs through initial allocation, a demand-only recomputation, and a link-member failure. 
+// I’m tightening the cache demonstration and topology-change detection so a changed candidate ordering cannot accidentally 
+// preserve stale tunnel rates.
+
+  1. Initial computation of all three FGs and transaction v1.
+  2. A connection-demand change that recomputes two FGs while preserving the independent E→F allocation, transaction v2.
+  3. Failure of one physical A-B member, reducing usable trunk capacity and recomputing only the affected FGs, transaction v3.
+
+  After the failure, FG-backup receives 15 of its requested 18 Gbit/s and is correctly marked blocked, 
+  while FG-sync and the independent analytics FG remain fully satisfied.
+
+  The transactional installer and source policers are control-plane models: 
+  they validate and display the intended updates but do not invoke a real OpenFlow, P4Runtime, tc, or switch API.
+
+  Tunnel selection also remains a greedy progressive-filling heuristic; 
+  globally optimal multipath routing would require a lexicographic multi-commodity-flow solver.
