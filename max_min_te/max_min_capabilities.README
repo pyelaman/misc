@@ -1,0 +1,68 @@
+  Current coverage:
+
+   Capability                            Extended implementation
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Topology-derived candidate tunnels    Implemented with bounded DFS, path costs, and caching
+  ────────────────────────────────────  ──────────────────────────────────────────────────────────────────────────────────────────
+   Piecewise bandwidth policy            Implemented as marginal weighted segments, but not exact B4 fair-share functions
+  ────────────────────────────────────  ──────────────────────────────────────────────────────────────────────────────────────────
+   More scalable allocation              Incremental resource-closure recomputation exists, but the core optimizer remains greedy
+  ────────────────────────────────────  ──────────────────────────────────────────────────────────────────────────────────────────
+   Global fairness-aware quantization    Not implemented; still uses local largest-remainder rounding
+  ────────────────────────────────────  ──────────────────────────────────────────────────────────────────────────────────────────
+   Source-edge rate limiter              Simulated through aggregate policer output
+  ────────────────────────────────────  ──────────────────────────────────────────────────────────────────────────────────────────
+   Topology and link failures            Modeled through trunks, physical members, topology versions, and headroom
+  ────────────────────────────────────  ──────────────────────────────────────────────────────────────────────────────────────────
+   Admission control                     Not implemented
+  ────────────────────────────────────  ──────────────────────────────────────────────────────────────────────────────────────────
+   Traffic Engineering Database          Only approximated by the in-memory controller state
+  ────────────────────────────────────  ──────────────────────────────────────────────────────────────────────────────────────────
+   Transactional deployment              Simulated with monotonically increasing versions
+  ────────────────────────────────────  ──────────────────────────────────────────────────────────────────────────────────────────
+   Dependency ordering                   Described in the README but not implemented
+  ────────────────────────────────────  ──────────────────────────────────────────────────────────────────────────────────────────
+   Acknowledgement and retry             Not implemented
+  ────────────────────────────────────  ──────────────────────────────────────────────────────────────────────────────────────────
+   OpenFlow programming                  Represented by printed groups and policers, not actual southbound operations
+
+  The next useful extension should therefore focus on the remaining gaps:
+
+  1. Make flow groups B4-compatible: {source, destination, QoS}, with multiple applications composed into one flow group.
+  2. Represent each application policy as bandwidth = f(fair_share) and compose those functions.
+  3. Add an admission stage that rejects unreachable traffic and traffic whose minimum guarantee cannot be satisfied.
+  4. Replace independent rounding with a global quantizer that checks every trunk after each bucket assignment.
+  5. Add a Traffic Engineering Database containing desired, staged, and installed policies.
+  6. Build an explicit deployment dependency graph:
+
+  tunnels
+     ↓
+  tunnel groups
+     ↓
+  source policers
+     ↓
+  classifiers
+     ↓
+  activate policy version
+
+  7. Simulate per-device prepare/commit acknowledgements, retry, idempotency, rollback, and old-version cleanup.
+  8. Separate discovered topology from configured policy, so failures update discovered state and trigger recomputation.
+  9. Keep the actual device operation behind an interface, allowing a simulator now and an OpenFlow-like backend later.
+
+  I recommend creating max_min_te_b4_controller.cpp as the next stage:
+
+  max_min_te_completed.cpp
+      Minimal fairness and multipath demonstration
+
+  max_min_te_extended.cpp
+      Topology, aggregation, caching, incremental recomputation,
+      headroom, policers, and simulated transactions
+
+  max_min_te_b4_controller.cpp
+      B4-compatible bandwidth functions, admission control,
+      global quantization, TED, dependency-aware deployment,
+      acknowledgements, retries, and rollback
+
+  This preserves the educational progression while avoiding duplicate implementations. 
+  The remaining work is substantial enough that adding it directly to max_min_te_completed.cpp would make the
+  “completed” example harder to understand and still not produce a faithful B4 controller.
